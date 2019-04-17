@@ -95,14 +95,14 @@ model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, name='bn'))
 
 model.summary()
 
-opt = Adam(lr=lr_start) 
+opt = Adam(lr=lr_start)
 model.compile(loss='squared_hinge', optimizer=opt, metrics=['acc'])
 
 # deserialized custom layers
 #model.save('mlp.h5')
 #model = load_model('mlp.h5', custom_objects={'DropoutNoScale': DropoutNoScale,
 #                                             'BinaryDense': BinaryDense,
-#                                             'Clip': Clip, 
+#                                             'Clip': Clip,
 #                                             'binary_tanh': binary_tanh})
 
 lr_scheduler = LearningRateScheduler(lambda e: lr_start * lr_decay ** e)
@@ -111,5 +111,7 @@ history = model.fit(X_train, Y_train,
                     verbose=1, validation_data=(X_test, Y_test),
                     callbacks=[lr_scheduler])
 score = model.evaluate(X_test, Y_test, verbose=0)
+#model.save('mnist_model_dummy.h5') #Uncomment to save the model - model is not saved by default.
+# Trained models will be updaed in <put url>
 print('Test score:', score[0])
 print('Test accuracy:', score[1])

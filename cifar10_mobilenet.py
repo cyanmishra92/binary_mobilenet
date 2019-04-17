@@ -9,7 +9,7 @@ import numpy as np
 np.random.seed(1337)  # for reproducibility
 
 import keras.backend as K
-from keras.datasets import fashion_mnist
+from keras.datasets import cifar10
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, BatchNormalization, MaxPooling2D
 from keras.layers import Flatten
@@ -31,12 +31,13 @@ kernel_lr_multiplier = 'Glorot'
 # nn
 batch_size = 50
 epochs = 20
-channels = 1
-img_rows = 28
-img_cols = 28
+channels = 3
+img_rows = 32
+img_cols = 32
 filters = 32
 kernel_size = (3, 3)
-pool_size = (2, 2)
+mini_kernel_size = (1, 1)
+pool_size = (7, 7)
 hidden_units = 128
 classes = 10
 use_bias = False
@@ -55,10 +56,10 @@ p1 = 0.25
 p2 = 0.5
 
 # the data, shuffled and split between train and test sets
-(X_train, y_train), (X_test, y_test) = fashion_mnist.load_data()
+(X_train, y_train), (X_test, y_test) = cifar10.load_data()
 
-X_train = X_train.reshape(60000, 1, 28, 28)
-X_test = X_test.reshape(10000, 1, 28, 28)
+X_train = X_train.reshape(50000, 3, 32, 32)
+X_test = X_test.reshape(10000, 3, 32, 32)
 X_train = X_train.astype('float32')
 X_test = X_test.astype('float32')
 X_train /= 255
@@ -73,33 +74,214 @@ Y_test = np_utils.to_categorical(y_test, classes) * 2 - 1
 
 model = Sequential()
 # conv1
-model.add(BinaryConv2D(128, kernel_size=kernel_size, input_shape=(channels, img_rows, img_cols),
+model.add(BinaryConv2D(32, kernel_size=kernel_size, input_shape=(channels, img_rows, img_cols),
                        data_format='channels_first',
                        H=H, kernel_lr_multiplier=kernel_lr_multiplier,
                        padding='same', use_bias=use_bias, name='conv1'))
 model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='bn1'))
 model.add(Activation(binary_tanh, name='act1'))
-# conv2
+##############################################################################################################
+
+# conv_dw_2_1
+model.add(BinaryConv2D(32, kernel_size=kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
+                       data_format='channels_first',
+                       padding='same', use_bias=use_bias, name='conv_dw_2_1'))
+#model.add(MaxPooling2D(pool_size=pool_size, name='pool2', data_format='channels_first'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='conv_dw_bn_2_1'))
+model.add(Activation(binary_tanh, name='conv_dw_act_2_1'))
+
+# conv_1x1_2_1
+model.add(BinaryConv2D(32, kernel_size=mini_kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
+                       data_format='channels_first',
+                       padding='same', use_bias=use_bias, name='conv_1x1_2_1'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='conv1x1_bn_2_1'))
+model.add(Activation(binary_tanh, name='conv1x1_act_2_1'))
+
+# conv_dw_2_2
+model.add(BinaryConv2D(64, kernel_size=kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
+                       data_format='channels_first', strides=2,
+                       padding='same', use_bias=use_bias, name='conv_dw_2_2'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='conv_dw_bn_2_2'))
+model.add(Activation(binary_tanh, name='conv_dw_act_2_2'))
+
+# conv_1x1_2_2
+model.add(BinaryConv2D(64, kernel_size=kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
+                       data_format='channels_first',
+                       padding='same', use_bias=use_bias, name='conv_1x1_2_2'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='conv_1x1_bn_2_2'))
+model.add(Activation(binary_tanh, name='conv_1x1_act_2_2'))
+##############################################################################################################
+
+# conv_dw_3_1
 model.add(BinaryConv2D(128, kernel_size=kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
                        data_format='channels_first',
-                       padding='same', use_bias=use_bias, name='conv2'))
-model.add(MaxPooling2D(pool_size=pool_size, name='pool2', data_format='channels_first'))
-model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='bn2'))
-model.add(Activation(binary_tanh, name='act2'))
-# conv3
+                       padding='same', use_bias=use_bias, name='conv_dw_3_1'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='conv_dw_bn_3_1'))
+model.add(Activation(binary_tanh, name='conv_dw_act_3_1'))
+
+# conv_1x1_3_1
+model.add(BinaryConv2D(128, kernel_size=mini_kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
+                       data_format='channels_first',
+                       padding='same', use_bias=use_bias, name='conv_1x1_3_1'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='conv_1x1_bn_3_1'))
+model.add(Activation(binary_tanh, name='conv_1x1_act_3_1'))
+
+# conv_dw_3_2
+model.add(BinaryConv2D(128, kernel_size=kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
+                       data_format='channels_first', strides=2,
+                       padding='same', use_bias=use_bias, name='conv_dw_3_2'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='conv_dw_bn_3_2'))
+model.add(Activation(binary_tanh, name='conv_dw_act_3_2'))
+
+# conv_1x1_3_2
+model.add(BinaryConv2D(128, kernel_size=mini_kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
+                       data_format='channels_first',
+                       padding='same', use_bias=use_bias, name='conv_1x1_3_2'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='conv_1x1_bn_3_2'))
+model.add(Activation(binary_tanh, name='conv_1x1_act_3_2'))
+##############################################################################################################
+
+# conv_dw_4_1
 model.add(BinaryConv2D(256, kernel_size=kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
                        data_format='channels_first',
-                       padding='same', use_bias=use_bias, name='conv3'))
-model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='bn3'))
-model.add(Activation(binary_tanh, name='act3'))
-# conv4
-model.add(BinaryConv2D(256, kernel_size=kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
+                       padding='same', use_bias=use_bias, name='conv_dw_4_1'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='conv_dw_bn_4_1'))
+model.add(Activation(binary_tanh, name='conv_dw_act_4_1'))
+
+# conv_1x1_4_1
+model.add(BinaryConv2D(256, kernel_size=mini_kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
                        data_format='channels_first',
-                       padding='same', use_bias=use_bias, name='conv4'))
-model.add(MaxPooling2D(pool_size=pool_size, name='pool4', data_format='channels_first'))
-model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='bn4'))
-model.add(Activation(binary_tanh, name='act4'))
+                       padding='same', use_bias=use_bias, name='conv_1x1_4_1'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='conv_1x1_bn_4_1'))
+model.add(Activation(binary_tanh, name='conv_1x1_act_4_1'))
+
+# conv_dw_4_2
+model.add(BinaryConv2D(256, kernel_size=kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
+                       data_format='channels_first', strides=2,
+                       padding='same', use_bias=use_bias, name='conv_dw_4_2'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='conv_dw_bn_4_2'))
+model.add(Activation(binary_tanh, name='conv_dw_act_4_2'))
+
+# conv_1x1_4_2
+model.add(BinaryConv2D(256, kernel_size=mini_kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
+                       data_format='channels_first',
+                       padding='same', use_bias=use_bias, name='conv_1x1_4_2'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='conv_1x1_bn_4_2'))
+model.add(Activation(binary_tanh, name='conv_1x1_act_4_2'))
+##############################################################################################################
+
+# conv_dw_5_1
+model.add(BinaryConv2D(512, kernel_size=kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
+                       data_format='channels_first',
+                       padding='same', use_bias=use_bias, name='conv_dw_5_1'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='conv_dw_bn_5_1'))
+model.add(Activation(binary_tanh, name='conv_dw_act_5_1'))
+
+# conv_1x1_5_1
+model.add(BinaryConv2D(512, kernel_size=mini_kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
+                       data_format='channels_first',
+                       padding='same', use_bias=use_bias, name='conv_1x1_5_1'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='conv_1x1_bn_5_1'))
+model.add(Activation(binary_tanh, name='conv_1x1_act_5_1'))
+
+# conv_dw_5_2
+model.add(BinaryConv2D(512, kernel_size=kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
+                       data_format='channels_first',
+                       padding='same', use_bias=use_bias, name='conv_dw_5_2'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='conv_dw_bn_5_2'))
+model.add(Activation(binary_tanh, name='conv_dw_act_5_2'))
+
+# conv_1x1_5_2
+model.add(BinaryConv2D(512, kernel_size=mini_kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
+                       data_format='channels_first',
+                       padding='same', use_bias=use_bias, name='conv_1x1_5_2'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='conv_1x1_bn_5_2'))
+model.add(Activation(binary_tanh, name='conv_1x1_act_5_2'))
+
+'''
+# conv_dw_5_3
+model.add(BinaryConv2D(512, kernel_size=kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
+                       data_format='channels_first',
+                       padding='same', use_bias=use_bias, name='conv_dw_5_3'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='conv_dw_bn_5_3'))
+model.add(Activation(binary_tanh, name='conv_dw_act_5_3'))
+
+# conv_1x1_5_3
+model.add(BinaryConv2D(512, kernel_size=mini_kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
+                       data_format='channels_first',
+                       padding='same', use_bias=use_bias, name='conv_1x1_5_3'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='conv_1x1_bn_5_3'))
+model.add(Activation(binary_tanh, name='conv_1x1_act_5_3'))
+
+# conv_dw_5_4
+model.add(BinaryConv2D(512, kernel_size=kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
+                       data_format='channels_first',
+                       padding='same', use_bias=use_bias, name='conv_dw_5_4'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='conv_dw_bn_5_4'))
+model.add(Activation(binary_tanh, name='conv_dw_act_5_4'))
+
+# conv_1x1_5_4
+model.add(BinaryConv2D(512, kernel_size=mini_kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
+                       data_format='channels_first',
+                       padding='same', use_bias=use_bias, name='conv_1x1_5_4'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='conv_1x1_bn_5_4'))
+model.add(Activation(binary_tanh, name='conv_1x1_act_5_4'))
+
+# conv_dw_5_5
+model.add(BinaryConv2D(512, kernel_size=kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
+                       data_format='channels_first',
+                       padding='same', use_bias=use_bias, name='conv_dw_5_5'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='conv_dw_bn_5_5'))
+model.add(Activation(binary_tanh, name='conv_dw_act_5_5'))
+
+# conv_1x1_5_5
+model.add(BinaryConv2D(512, kernel_size=mini_kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
+                       data_format='channels_first',
+                       padding='same', use_bias=use_bias, name='conv_1x1_5_5'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='conv_1x1_bn_5_5'))
+model.add(Activation(binary_tanh, name='conv_1x1_act_5_5'))
+'''
+'''
+V1. Comment # conv_dw_5_3 to # conv_1x1_5_5 Test Accuracy:
+Removed the above lines to make the network smaller for the cifar 10 dataset.
+Given the netowrk operates on +-1 weights and activations, deeper network caused vanishing gradient problem. (I think)
+'''
+##############################################################################################################
+
+# conv_dw_6_1
+model.add(BinaryConv2D(512, kernel_size=kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
+                       data_format='channels_first',strides=2,
+                       padding='same', use_bias=use_bias, name='conv_dw_6_1'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='conv_dw_bn_6_1'))
+model.add(Activation(binary_tanh, name='conv_dw_act_6_1'))
+
+# conv_1x1_6_1
+model.add(BinaryConv2D(512, kernel_size=mini_kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
+                       data_format='channels_first',
+                       padding='same', use_bias=use_bias, name='conv_1x1_6_1'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='conv_1x1_bn_6_1'))
+model.add(Activation(binary_tanh, name='conv_1x1_act_6_1'))
+##############################################################################################################
+
+# conv_dw_7_2
+model.add(BinaryConv2D(1024, kernel_size=kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
+                       data_format='channels_first',
+                       padding='same', use_bias=use_bias, name='conv_dw_7_2'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='conv_dw_bn_7_2'))
+model.add(Activation(binary_tanh, name='conv_dw_act_7_2'))
+
+# conv_1x1_7_2
+model.add(BinaryConv2D(1024, kernel_size=mini_kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
+                       data_format='channels_first',
+                       padding='same', use_bias=use_bias, name='conv_1x1_7_2'))
+model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='conv_1x1_bn_7_2'))
+model.add(Activation(binary_tanh, name='conv_1x1_act_7_2'))
+##############################################################################################################
+
+#model.add(MaxPooling2D(pool_size=pool_size, name='pool7', data_format='channels_first'))
 model.add(Flatten())
+
+##############################################################################################################
 # dense1
 model.add(BinaryDense(1024, H=H, kernel_lr_multiplier=kernel_lr_multiplier, use_bias=use_bias, name='dense5'))
 model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, name='bn5'))
@@ -107,9 +289,11 @@ model.add(Activation(binary_tanh, name='act5'))
 # dense2
 model.add(BinaryDense(classes, H=H, kernel_lr_multiplier=kernel_lr_multiplier, use_bias=use_bias, name='dense6'))
 model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, name='bn6'))
+##############################################################################################################
 
 opt = Adam(lr=lr_start)
-model.compile(loss='squared_hinge', optimizer=opt, metrics=['acc'])
+#model.compile(loss='squared_hinge', optimizer=opt, metrics=['acc'])
+model.compile(loss='mean_squared_error', optimizer=opt, metrics=['acc'])
 model.summary()
 
 lr_scheduler = LearningRateScheduler(lambda e: lr_start * lr_decay ** e)
@@ -118,6 +302,8 @@ history = model.fit(X_train, Y_train,
                     verbose=1, validation_data=(X_test, Y_test),
                     callbacks=[lr_scheduler])
 score = model.evaluate(X_test, Y_test, verbose=0)
-model.save()
+model.save('cifar10_bin_mobilenet.h5')
+#model.save('mnist_model_dummy.h5') #Uncomment to save the model - model is not saved by default.
+# Trained models will be updaed in <put url>
 print('Test score:', score[0])
 print('Test accuracy:', score[1])

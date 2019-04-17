@@ -118,5 +118,7 @@ history = model.fit(X_train, Y_train,
                     verbose=1, validation_data=(X_test, Y_test),
                     callbacks=[lr_scheduler])
 score = model.evaluate(X_test, Y_test, verbose=0)
+#model.save('mnist_model_dummy.h5') #Uncomment to save the model - model is not saved by default.
+# Trained models will be updaed in <put url>
 print('Test score:', score[0])
 print('Test accuracy:', score[1])

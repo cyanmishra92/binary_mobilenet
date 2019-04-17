@@ -30,7 +30,7 @@ kernel_lr_multiplier = 'Glorot'
 
 # nn
 batch_size = 50
-epochs = 20
+epochs = 1
 channels = 1
 img_rows = 28
 img_cols = 28
@@ -81,7 +81,7 @@ model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='b
 model.add(Activation(binary_tanh, name='act1'))
 # conv2
 model.add(BinaryConv2D(128, kernel_size=kernel_size, H=H, kernel_lr_multiplier=kernel_lr_multiplier,
-                       data_format='channels_first',
+                       data_format='channels_first', strides=2,
                        padding='same', use_bias=use_bias, name='conv2'))
 model.add(MaxPooling2D(pool_size=pool_size, name='pool2', data_format='channels_first'))
 model.add(BatchNormalization(epsilon=epsilon, momentum=momentum, axis=1, name='bn2'))
@@ -118,6 +118,7 @@ history = model.fit(X_train, Y_train,
                     verbose=1, validation_data=(X_test, Y_test),
                     callbacks=[lr_scheduler])
 score = model.evaluate(X_test, Y_test, verbose=0)
-model.save()
+#model.save('mnist_model_dummy.h5') #Uncomment to save the model - model is not saved by default.
+# Trained models will be updaed in <put url>
 print('Test score:', score[0])
 print('Test accuracy:', score[1])
